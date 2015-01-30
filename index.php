@@ -12,7 +12,7 @@ Author URI: https://pay4app.com
 //registering the gateway
 
 function pay4app_edd_register_gateway($gateways){
-	$gateways['pay4app_edd'] = array('admin_label' => 'Pay4App', 'checkout_label' => __('EcoCash, TeleCash, ZimSwitch and VISA via Pay4App', 'pay4app_edd'));
+	$gateways['pay4app_edd'] = array('admin_label' => 'Pay4App', 'checkout_label' => __('EcoCash, TeleCash, ZimSwitch, VISA & Mastercard via Pay4App', 'pay4app_edd'));
 	return $gateways;
 }
 
@@ -88,14 +88,15 @@ function pay4app_process_payment($purchase_data){
 	//Check payment
 	if (!$payment){
 		edd_record_gateway_error( __( 'Payment error', 'edd' ), sprintf( __( 'Payment creation failed before sending buyer to Pay4App. Payment data: %s', 'edd' ), json_encode($payment_data) ), $payment ); 
-		//redirect the buyer again top checkout
+		//redirect the buyer again to checkout
 		edd_send_back_to_checkout( '?payment-mode=' . $purchase_data['post_data']['edd-gateway'] );
 	}
 	else{
 
 		$redirect_url = get_permalink( $edd_options['success_page'] );
 
-		$hash = $edd_options['pay4app_merchant_id'].$purchase_data['purchase_key'].$purchase_data['price'].$edd_options['pay4app_api_secret_key'];
+		$hash = $edd_options['pay4app_merchant_id'].$payment.$purchase_data['price'].$edd_options['pay4app_api_secret_key'];
+		$hashr = $hash;
 		$hash = hash('sha256', $hash);
 
 		$pay4app_args = array(
@@ -104,7 +105,8 @@ function pay4app_process_payment($purchase_data){
 			'signature' => $hash,
 			'amount' => $purchase_data['price'],
 			'redirect' => $redirect_url,
-			'transferpending' => $redirect_url
+			'transferpending' => $redirect_url,
+			'hash' => $hashr
 
 			);
 
@@ -231,8 +233,6 @@ function pay4app_edd_listen_for_redirect_callback_or_pending(){
 
 	*/
 
-	//annoy();
-
 	
 	if (is_pay4app_transfer_pending_redirect()){
 		add_action('the_content', 'showPay4AppTransferPendingMessage');
@@ -248,8 +248,6 @@ function pay4app_edd_listen_for_redirect_callback_or_pending(){
 		$p4a_phone = $_GET['phone'];
 
 		if (!$payment_postp4a = get_post( $p4a_payment )) die(json_encode(array('status'=>1, 'message'=>'post no exist')));
-
-		//var_dump($payment_postp4a);		
 
 		if ( !( $payment_postp4a->post_type == 'edd_payment'  ) ){
 
@@ -338,4 +336,3 @@ function pay4app_edd_listen_for_redirect_callback_or_pending(){
 
 
 add_action( 'init', 'pay4app_edd_listen_for_redirect_callback_or_pending' );
-//b603a6a757a41d5b24a7e9ff00a076fc
